@@ -62,16 +62,16 @@ func (index *checksumIndex) FindWeakChecksum(weak uint32) strongChecksumList {
 	return nil
 }
 
-func (index *checksumIndex) FindStrongChecksum(weakMatchList strongChecksumList, strong []byte) []*syncpb.ChunkChecksum {
+func (index *checksumIndex) FindStrongChecksum(weakMatchList strongChecksumList, strong []byte) *syncpb.ChunkChecksum {
 	return weakMatchList.FindStrongChecksum(strong)
 }
 
-func (s strongChecksumList) FindStrongChecksum(strong []byte) []*syncpb.ChunkChecksum {
+func (s strongChecksumList) FindStrongChecksum(strong []byte) *syncpb.ChunkChecksum {
 	n := len(s)
 
 	if n == 1 {
 		if bytes.Compare(s[0].StrongHash, strong) == 0 {
-			return s
+			return s[0]
 		}
 
 		return nil
@@ -89,14 +89,5 @@ func (s strongChecksumList) FindStrongChecksum(strong []byte) []*syncpb.ChunkChe
 		return nil
 	}
 
-	end := firstChecksum + 1
-	for end < n {
-		if bytes.Compare(s[end].StrongHash, strong) == 0 {
-			end++
-		} else {
-			break
-		}
-	}
-
-	return s[firstChecksum:end]
+	return s[firstChecksum]
 }

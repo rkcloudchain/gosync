@@ -1,19 +1,28 @@
 package gosync
 
 import (
-	"io"
-
 	"github.com/rkcloudchain/gosync/syncpb"
-)
-
-const (
-	maxBlockSize = 1 << 17 // 128kb
 )
 
 // GoSync represents a rsync service
 type GoSync interface {
-	// Sign reads each block of the input file, and returns the checksums for each block.
-	Sign(dest io.Reader) (*syncpb.ChunkChecksums, error)
+	Delta(*syncpb.ChunkChecksums) (*syncpb.PatcherBlockSpan, error)
 
-	Delta(source io.ReadSeeker, checksums *syncpb.ChunkChecksums)
+	Patch(*syncpb.PatcherBlockSpan) error
+
+	SignReady() <-chan *syncpb.ChunkChecksums
+
+	Stop()
+}
+
+// Start returns a new gosync instance given configuration.
+func Start(c *Config) GoSync {
+	if err := c.validate(); err != nil {
+		panic(err.Error())
+	}
+
+	r := newRSync(c)
+	n := newNode(c, r)
+	go n.run()
+	return n
 }

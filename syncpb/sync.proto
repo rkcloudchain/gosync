@@ -11,13 +11,29 @@ option (gogoproto.goproto_getters_all) = false;
 option (gogoproto.goproto_enum_prefix_all) = false;
 
 message ChunkChecksums {
-    bytes file_hash = 1;
+    int64 mod_time = 1;
     repeated ChunkChecksum checksums = 2;
 }
 
 message ChunkChecksum {
-    uint64 block_index = 1;
+    uint32 block_index = 1;
     int64 block_size = 2;
     uint32 weak_hash = 3;
     bytes strong_hash = 4;
+}
+
+message PatcherBlockSpan {
+    int64 mod_time = 1;
+    repeated FoundBlockSpan found = 2;
+    repeated MissingBlockSpan missing = 3;
+}
+
+message FoundBlockSpan {
+    int64 match_offset = 1;
+    int64 block_size = 2;
+}
+
+message MissingBlockSpan {
+    int64 start_offset = 1;
+    bytes data = 2;
 }

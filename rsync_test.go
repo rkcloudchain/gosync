@@ -12,7 +12,7 @@ import (
 )
 
 func TestEmptyReaders(t *testing.T) {
-	r := &rsync{blockSize: 64 * 1024, strongHasher: md5.New(), fullChecksum: md5.New()}
+	r := &rsync{blockSize: 64 * 1024, strongHasher: md5.New()}
 	checksums, err := r.Sign(bytes.NewReader(nil))
 	assert.NoError(t, err)
 	assert.Len(t, checksums, 0)
@@ -24,7 +24,7 @@ func TestGenerateChecksums(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 4*1024*1024, n)
 
-	r := &rsync{blockSize: 512 * 1024, strongHasher: md5.New(), fullChecksum: md5.New()}
+	r := &rsync{blockSize: 512 * 1024, strongHasher: md5.New()}
 	checksums, err := r.Sign(bytes.NewReader(data))
 	assert.NoError(t, err)
 	assert.Len(t, checksums, 8)
@@ -36,9 +36,23 @@ func TestGenerateChecksums2(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 8520959, n)
 
-	r := &rsync{blockSize: 512 * 1024, strongHasher: sha256.New(), fullChecksum: md5.New()}
+	r := &rsync{blockSize: 512 * 1024, strongHasher: sha256.New()}
 	checksums, err := r.Sign(bytes.NewReader(data))
 	assert.NoError(t, err)
-	checksum := checksums.Checksums[len(checksums.Checksums)-1]
+	checksum := checksums[len(checksums)-1]
 	assert.NotEqual(t, 512*1024, checksum.Size())
+}
+
+func TestDelta(t *testing.T) {
+	reader := bytes.NewReader([]byte("123abcdefg"))
+	r := &rsync{blockSize: 3, strongHasher: md5.New()}
+
+	checksums, err := r.Sign(reader)
+	assert.NoError(t, err)
+	assert.Len(t, checksums, 4)
+
+	source := bytes.NewReader([]byte("123xxabc def"))
+	results, err := r.Match(source, checksums)
+	assert.NoError(t, err)
+	assert.Len(t, results, 3)
 }
