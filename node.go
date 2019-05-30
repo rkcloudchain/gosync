@@ -63,12 +63,7 @@ func (n *node) Delta(checksums *syncpb.ChunkChecksums) (*syncpb.PatcherBlockSpan
 		defer closer.Close()
 	}
 
-	size, err := n.fileAccessor.GetFileSize()
-	if err != nil {
-		return nil, err
-	}
-
-	result, err := n.r.Delta(reader, size, checksums.Checksums)
+	result, err := n.r.Delta(reader, checksums.ConfigBlockSize, checksums.Checksums)
 	if err != nil {
 		return nil, err
 	}
@@ -166,5 +161,5 @@ func (n *node) createSignature() (*syncpb.ChunkChecksums, error) {
 	}
 	modTime = modTime.UTC()
 
-	return &syncpb.ChunkChecksums{ModTime: modTime.UnixNano(), Checksums: checksums}, nil
+	return &syncpb.ChunkChecksums{ModTime: modTime.UnixNano(), Checksums: checksums, ConfigBlockSize: n.r.blockSize}, nil
 }

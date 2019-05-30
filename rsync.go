@@ -1,7 +1,6 @@
 package gosync
 
 import (
-	"fmt"
 	"hash"
 	"hash/adler32"
 	"io"
@@ -17,21 +16,23 @@ const (
 )
 
 type blockMatchResult struct {
-	Index     uint32
-	Offset    int64
-	BlockSize int64
+	Index            uint32
+	Size             int64
+	ComparisonOffset int64
 }
 
-func newRSync(c *Config) *rsync {
+func newRSync(blockSize int64, strongHasher hash.Hash, sizeFunc func() (int64, error)) *rsync {
 	return &rsync{
-		blockSize:    c.BlockSize,
-		strongHasher: c.StrongHasher,
+		blockSize:    blockSize,
+		strongHasher: strongHasher,
+		sizeFunc:     sizeFunc,
 	}
 }
 
 type rsync struct {
 	blockSize    int64
 	strongHasher hash.Hash
+	sizeFunc     func() (int64, error)
 }
 
 // Sign reads each block of the input file, and returns the checksums for each block.
@@ -42,6 +43,7 @@ func (r *rsync) Sign(dest io.Reader) ([]*syncpb.ChunkChecksum, error) {
 	checksums := make([]*syncpb.ChunkChecksum, 0)
 
 	var index uint32
+
 	for {
 		n, err := io.ReadFull(dest, buffer)
 		block := buffer[:n]
@@ -53,71 +55,71 @@ func (r *rsync) Sign(dest io.Reader) ([]*syncpb.ChunkChecksum, error) {
 		weak := ComputeWeakHash(block)
 		strong := r.computeStrongHash(block)
 
-		checksums = append(checksums, &syncpb.ChunkChecksum{BlockIndex: index, BlockSize: int64(n), WeakHash: weak, StrongHash: strong})
-		index++
+		checksums = append(checksums, &syncpb.ChunkChecksum{BlockIndex: index, WeakHash: weak, StrongHash: strong, BlockSize: int64(n)})
 
 		if n != len(buffer) || err == io.EOF {
 			break
 		}
+
+		index++
 	}
 
 	return checksums, nil
 }
 
 func (r *rsync) Patch(localFile io.ReadSeeker, localBlocks []*syncpb.FoundBlockSpan, remoteBlocks []*syncpb.MissingBlockSpan, output io.Writer) error {
-	currentOffset := int64(0)
-
-	for len(localBlocks) > 0 && len(remoteBlocks) > 0 {
-		if r.findInLocalBlocks(currentOffset, localBlocks) {
-			firstMatched := localBlocks[0]
-
-			localFile.Seek(currentOffset, io.SeekStart)
-			if _, err := io.Copy(output, io.LimitReader(localFile, firstMatched.BlockSize)); err != nil {
-				return fmt.Errorf("Could not copy %d bytes to output: %v", firstMatched.BlockSize, err)
-			}
-
-			currentOffset += firstMatched.BlockSize
-			localBlocks = localBlocks[1:]
-
-		} else if r.findInRemoteBlocks(currentOffset, remoteBlocks) {
-			firstMissing := remoteBlocks[0]
-			if _, err := output.Write(firstMissing.Data); err != nil {
-				return fmt.Errorf("Could not write data to output: %v", err)
-			}
-
-			currentOffset += int64(len(firstMissing.Data))
-			remoteBlocks = remoteBlocks[1:]
-
-		} else {
-			return fmt.Errorf("Could not found block in missing or matched list: %d", currentOffset)
-		}
-	}
-
 	return nil
 }
 
-func (r *rsync) Delta(source io.ReaderAt, fileSize int64, checksums []*syncpb.ChunkChecksum) (*syncpb.PatcherBlockSpan, error) {
-	matches, err := r.Match(source, checksums)
+func (r *rsync) Delta(source io.ReaderAt, blockSize int64, checksums []*syncpb.ChunkChecksum) (*syncpb.PatcherBlockSpan, error) {
+	matches, err := r.match(source, blockSize, checksums)
 	if err != nil {
 		return nil, err
 	}
 
 	merger := newMerger()
-	merger.MergeResult(matches)
+	merger.MergeResult(matches, blockSize)
 
 	mergedBlocks := merger.GetMergedBlocks()
-	patcher := &syncpb.PatcherBlockSpan{Found: r.patchFoundSpan(mergedBlocks)}
+	missing, err := r.fetchMissingBlocks(mergedBlocks, blockSize)
+	if err != nil {
+		return nil, err
+	}
 
-	return patcher, patcher.GetMissingBlocks(source, fileSize)
+	patcher := &syncpb.PatcherBlockSpan{Found: r.patchFoundSpan(mergedBlocks), Missing: missing}
+	return patcher, nil
 }
 
-func (r *rsync) Match(source io.ReaderAt, checksums []*syncpb.ChunkChecksum) ([]blockMatchResult, error) {
+func (r *rsync) fetchMissingBlocks(sl blockSpanList, blockSize int64) ([]*syncpb.MissingBlockSpan, error) {
+	sorted := make([]*syncpb.MissingBlockSpan, 0)
+	size, err := r.sizeFunc()
+	if err != nil {
+		return nil, err
+	}
+
+	offset := int64(0)
+	for _, blockSpan := range sl {
+		if blockSpan.ComparisonOffset > offset {
+			sorted = append(sorted, &syncpb.MissingBlockSpan{StartOffset: offset, EndOffset: blockSpan.ComparisonOffset - 1})
+		}
+
+		offset = blockSpan.ComparisonOffset + blockSpan.Size
+	}
+
+	if offset < size-1 {
+		sorted = append(sorted, &syncpb.MissingBlockSpan{StartOffset: offset, EndOffset: size - 1})
+	}
+
+	return sorted, nil
+}
+
+func (r *rsync) match(source io.ReaderAt, blockSize int64, checksums []*syncpb.ChunkChecksum) ([]blockMatchResult, error) {
 	defer r.strongHasher.Reset()
 
 	index := makeChecksumIndex(checksums)
 	matchResult := make([]blockMatchResult, 0)
 
-	buffer := make([]byte, r.blockSize)
+	buffer := make([]byte, blockSize)
 	next := ReadNextByte
 	offset := int64(0)
 
@@ -136,9 +138,9 @@ func (r *rsync) Match(source io.ReaderAt, checksums []*syncpb.ChunkChecksum) ([]
 
 			if chunk != nil {
 				matchResult = append(matchResult, blockMatchResult{
-					Offset:    offset,
-					Index:     chunk.BlockIndex,
-					BlockSize: chunk.BlockSize,
+					Index:            chunk.BlockIndex,
+					Size:             chunk.BlockSize,
+					ComparisonOffset: offset,
 				})
 
 				if next == ReadNone {
@@ -164,11 +166,11 @@ func (r *rsync) Match(source io.ReaderAt, checksums []*syncpb.ChunkChecksum) ([]
 			weak = adler32.Checksum(block)
 		}
 
-		if next != ReadNone && (err == io.EOF || err == io.ErrUnexpectedEOF) {
+		if next != ReadNone && err == io.EOF && n == 0 {
 			next = ReadNone
 		}
 
-		if next == ReadNone && n == 0 {
+		if next == ReadNone {
 			break
 		}
 	}
@@ -183,20 +185,47 @@ func (r *rsync) computeStrongHash(v []byte) []byte {
 }
 
 func (r *rsync) patchFoundSpan(sl blockSpanList) []*syncpb.FoundBlockSpan {
-	result := make([]*syncpb.FoundBlockSpan, len(sl))
+	sorted := make([]*syncpb.FoundBlockSpan, len(sl))
 
 	for i, v := range sl {
-		result[i].MatchOffset = v.StartOffset
-		result[i].BlockSize = v.Size
+		s := &syncpb.FoundBlockSpan{ComparisonOffset: v.ComparisonOffset, BlockSize: v.Size, StartIndex: v.Start, EndIndex: v.End}
+		sorted[i] = s
 	}
 
-	return result
+	return sorted
 }
 
 func (r *rsync) findInLocalBlocks(currentOffset int64, localBlocks []*syncpb.FoundBlockSpan) bool {
-	return len(localBlocks) > 0 && localBlocks[0].MatchOffset == currentOffset
+	return len(localBlocks) > 0 && localBlocks[0].ComparisonOffset <= currentOffset
 }
 
 func (r *rsync) findInRemoteBlocks(currentOffset int64, remoteBlocks []*syncpb.MissingBlockSpan) bool {
-	return len(remoteBlocks) > 0 && remoteBlocks[0].StartOffset == currentOffset
+	return len(remoteBlocks) > 0 && remoteBlocks[0].StartOffset <= currentOffset && remoteBlocks[0].EndOffset >= currentOffset
+}
+
+func newBlockSizeResolver(blockSize, fileSize int64) *blockSizeResolver {
+	return &blockSizeResolver{BlockSize: blockSize, FileSize: fileSize}
+}
+
+type blockSizeResolver struct {
+	BlockSize int64
+	FileSize  int64
+}
+
+func (r *blockSizeResolver) GetBlockStartOffset(startIndex uint32) int64 {
+	off := int64(startIndex) * r.BlockSize
+	if r.FileSize != 0 && off > r.FileSize {
+		return r.FileSize
+	}
+
+	return off
+}
+
+func (r *blockSizeResolver) GetBlockEndOffset(endIndex uint32) int64 {
+	off := int64(endIndex) * r.BlockSize
+	if r.FileSize != 0 && off > r.FileSize {
+		return r.FileSize
+	}
+
+	return off
 }

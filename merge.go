@@ -14,7 +14,7 @@ type matchMerger struct {
 	blockMap *llrb.LLRB
 }
 
-func (merger *matchMerger) MergeResult(results []blockMatchResult) {
+func (merger *matchMerger) MergeResult(results []blockMatchResult, blockSize int64) {
 	for _, result := range results {
 		blockID := result.Index
 		preceeding := merger.blockMap.Get(blockSpanKey(blockID - 1))
@@ -51,16 +51,16 @@ func (merger *matchMerger) MergeResult(results []blockMatchResult) {
 
 		if preceeding != nil && following != nil {
 			a := merger.itemToBlockSpan(preceeding)
-			merger.merge(span, &a)
+			merger.merge(span, &a, blockSize)
 
 			b := merger.itemToBlockSpan(following)
-			merger.merge(&a, &b)
+			merger.merge(&a, &b, blockSize)
 		} else if preceeding != nil {
 			a := merger.itemToBlockSpan(preceeding)
-			merger.merge(span, &a)
+			merger.merge(span, &a, blockSize)
 		} else if following != nil {
 			b := merger.itemToBlockSpan(following)
-			merger.merge(span, &b)
+			merger.merge(span, &b, blockSize)
 		}
 	}
 }
@@ -80,14 +80,14 @@ func (merger *matchMerger) GetMergedBlocks() blockSpanList {
 	return sorted
 }
 
-func (merger *matchMerger) merge(block1, block2 *blockSpan) {
+func (merger *matchMerger) merge(block1, block2 *blockSpan, blockSize int64) {
 	var a, b *blockSpan = block1, block2
 
 	if block1.Start > block2.Start {
 		a, b = block2, block1
 	}
 
-	if a.End == b.Start-1 && a.EndOffset(a.Size) == b.StartOffset {
+	if a.End == b.Start-1 && a.EndOffset(blockSize) == b.ComparisonOffset {
 		merger.blockMap.Delete(blockSpanKey(a.End))
 		merger.blockMap.Delete(blockSpanKey(b.Start))
 		a.End = b.End
@@ -110,22 +110,22 @@ func (merger *matchMerger) itemToBlockSpan(in llrb.Item) blockSpan {
 
 func (merger *matchMerger) toBlockSpan(b blockMatchResult) *blockSpan {
 	return &blockSpan{
-		Start:       b.Index,
-		End:         b.Index,
-		StartOffset: b.Offset,
-		Size:        b.BlockSize,
+		Start:            b.Index,
+		End:              b.Index,
+		Size:             b.Size,
+		ComparisonOffset: b.ComparisonOffset,
 	}
 }
 
 type blockSpan struct {
-	Start       uint32
-	End         uint32
-	StartOffset int64
-	Size        int64
+	Start            uint32
+	End              uint32
+	Size             int64
+	ComparisonOffset int64
 }
 
 func (b blockSpan) EndOffset(blockSize int64) int64 {
-	return b.StartOffset + blockSize*int64(b.End-b.Start+1)
+	return b.ComparisonOffset + blockSize*int64(b.End-b.Start+1)
 }
 
 type blockSpanIndex interface {
@@ -173,5 +173,5 @@ func (l blockSpanList) Swap(i, j int) {
 }
 
 func (l blockSpanList) Less(i, j int) bool {
-	return l[i].Start < l[j].Start
+	return l[i].ComparisonOffset < l[j].ComparisonOffset
 }

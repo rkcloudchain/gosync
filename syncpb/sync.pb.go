@@ -24,7 +24,8 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type ChunkChecksums struct {
 	ModTime              int64            `protobuf:"varint,1,opt,name=mod_time,json=modTime,proto3" json:"mod_time,omitempty"`
-	Checksums            []*ChunkChecksum `protobuf:"bytes,2,rep,name=checksums,proto3" json:"checksums,omitempty"`
+	ConfigBlockSize      int64            `protobuf:"varint,2,opt,name=config_block_size,json=configBlockSize,proto3" json:"config_block_size,omitempty"`
+	Checksums            []*ChunkChecksum `protobuf:"bytes,3,rep,name=checksums,proto3" json:"checksums,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
 	XXX_unrecognized     []byte           `json:"-"`
 	XXX_sizecache        int32            `json:"-"`
@@ -65,9 +66,9 @@ var xxx_messageInfo_ChunkChecksums proto.InternalMessageInfo
 
 type ChunkChecksum struct {
 	BlockIndex           uint32   `protobuf:"varint,1,opt,name=block_index,json=blockIndex,proto3" json:"block_index,omitempty"`
-	BlockSize            int64    `protobuf:"varint,2,opt,name=block_size,json=blockSize,proto3" json:"block_size,omitempty"`
-	WeakHash             uint32   `protobuf:"varint,3,opt,name=weak_hash,json=weakHash,proto3" json:"weak_hash,omitempty"`
-	StrongHash           []byte   `protobuf:"bytes,4,opt,name=strong_hash,json=strongHash,proto3" json:"strong_hash,omitempty"`
+	WeakHash             uint32   `protobuf:"varint,2,opt,name=weak_hash,json=weakHash,proto3" json:"weak_hash,omitempty"`
+	StrongHash           []byte   `protobuf:"bytes,3,opt,name=strong_hash,json=strongHash,proto3" json:"strong_hash,omitempty"`
+	BlockSize            int64    `protobuf:"varint,4,opt,name=block_size,json=blockSize,proto3" json:"block_size,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -149,8 +150,10 @@ func (m *PatcherBlockSpan) XXX_DiscardUnknown() {
 var xxx_messageInfo_PatcherBlockSpan proto.InternalMessageInfo
 
 type FoundBlockSpan struct {
-	MatchOffset          int64    `protobuf:"varint,1,opt,name=match_offset,json=matchOffset,proto3" json:"match_offset,omitempty"`
-	BlockSize            int64    `protobuf:"varint,2,opt,name=block_size,json=blockSize,proto3" json:"block_size,omitempty"`
+	ComparisonOffset     int64    `protobuf:"varint,1,opt,name=comparison_offset,json=comparisonOffset,proto3" json:"comparison_offset,omitempty"`
+	StartIndex           uint32   `protobuf:"varint,2,opt,name=start_index,json=startIndex,proto3" json:"start_index,omitempty"`
+	EndIndex             uint32   `protobuf:"varint,3,opt,name=end_index,json=endIndex,proto3" json:"end_index,omitempty"`
+	BlockSize            int64    `protobuf:"varint,4,opt,name=block_size,json=blockSize,proto3" json:"block_size,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -191,7 +194,7 @@ var xxx_messageInfo_FoundBlockSpan proto.InternalMessageInfo
 
 type MissingBlockSpan struct {
 	StartOffset          int64    `protobuf:"varint,1,opt,name=start_offset,json=startOffset,proto3" json:"start_offset,omitempty"`
-	Data                 []byte   `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	EndOffset            int64    `protobuf:"varint,2,opt,name=end_offset,json=endOffset,proto3" json:"end_offset,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -243,33 +246,36 @@ func init() {
 }
 
 var fileDescriptor_80ada1672304bdc6 = []byte{
-	// 406 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x92, 0x41, 0x6e, 0xd4, 0x30,
-	0x14, 0x86, 0xc7, 0x4d, 0x69, 0x3b, 0x6f, 0xa6, 0x55, 0x65, 0x01, 0x0a, 0x20, 0xc2, 0x10, 0x09,
-	0x69, 0x16, 0x28, 0x41, 0xed, 0x01, 0x90, 0x5a, 0x09, 0xd1, 0x05, 0x02, 0x05, 0x56, 0x6c, 0x82,
-	0xe3, 0x78, 0x62, 0x2b, 0xb5, 0x3d, 0x8a, 0x1d, 0x01, 0xbd, 0x03, 0x62, 0xcb, 0x91, 0xba, 0xec,
-	0x11, 0xe8, 0x70, 0x11, 0x64, 0x7b, 0x42, 0x35, 0x5d, 0x00, 0x9b, 0xc4, 0xf9, 0xde, 0xef, 0xcf,
-	0xef, 0x45, 0x86, 0x17, 0x8d, 0xb0, 0xbc, 0xaf, 0x32, 0xaa, 0x65, 0xde, 0xb5, 0xf4, 0x5c, 0xf7,
-	0x35, 0xe5, 0x44, 0xa8, 0xbc, 0xd1, 0xe6, 0xab, 0xa2, 0xb9, 0x7b, 0x2c, 0x2b, 0xff, 0xca, 0x96,
-	0x9d, 0xb6, 0x1a, 0xef, 0x04, 0xf4, 0xf0, 0x6e, 0xa3, 0x1b, 0xed, 0x51, 0xee, 0x56, 0xa1, 0x9a,
-	0x7e, 0x82, 0x83, 0x53, 0xde, 0xab, 0xf6, 0x94, 0x33, 0xda, 0x9a, 0x5e, 0x1a, 0xfc, 0x00, 0xf6,
-	0xa4, 0xae, 0x4b, 0x2b, 0x24, 0x8b, 0xd1, 0x0c, 0xcd, 0xa3, 0x62, 0x57, 0xea, 0xfa, 0x83, 0x90,
-	0x0c, 0x1f, 0xc3, 0x98, 0x0e, 0xb9, 0x78, 0x6b, 0x16, 0xcd, 0x27, 0x47, 0xf7, 0xb2, 0xa0, 0xcf,
-	0x36, 0x2c, 0xc5, 0x4d, 0x2e, 0xfd, 0x86, 0x60, 0x7f, 0xa3, 0x88, 0x9f, 0xc0, 0xa4, 0x3a, 0xd7,
-	0xb4, 0x2d, 0x85, 0xaa, 0xd9, 0x17, 0x7f, 0xc8, 0x7e, 0x01, 0x1e, 0x9d, 0x39, 0x82, 0x1f, 0x43,
-	0xf8, 0x2a, 0x8d, 0xb8, 0x60, 0xf1, 0x96, 0x6f, 0x62, 0xec, 0xc9, 0x7b, 0x71, 0xc1, 0xf0, 0x23,
-	0x18, 0x7f, 0x66, 0xa4, 0x2d, 0x39, 0x31, 0x3c, 0x8e, 0xfc, 0xee, 0x3d, 0x07, 0x5e, 0x13, 0xc3,
-	0x9d, 0xdc, 0xd8, 0x4e, 0xab, 0x26, 0x94, 0xb7, 0x67, 0x68, 0x3e, 0x2d, 0x20, 0x20, 0x17, 0x48,
-	0xbf, 0x23, 0x38, 0x7c, 0x47, 0x2c, 0xe5, 0xac, 0x3b, 0xf1, 0xca, 0x25, 0x51, 0x7f, 0x1b, 0xfa,
-	0x39, 0xdc, 0x59, 0xe8, 0x5e, 0xd5, 0xeb, 0x81, 0xef, 0x0f, 0x03, 0xbf, 0x72, 0xf0, 0x8f, 0xa1,
-	0x08, 0x21, 0x7c, 0x04, 0xbb, 0x52, 0x18, 0x23, 0x54, 0x13, 0x47, 0x3e, 0x1f, 0x0f, 0xf9, 0x37,
-	0x01, 0xdf, 0xec, 0x18, 0x82, 0x69, 0x01, 0x07, 0x9b, 0x32, 0xfc, 0x14, 0xa6, 0xd2, 0xb5, 0x58,
-	0xea, 0xc5, 0xc2, 0x30, 0xbb, 0x6e, 0x69, 0xe2, 0xd9, 0x5b, 0x8f, 0xfe, 0xf1, 0x8f, 0xd2, 0x33,
-	0x38, 0xbc, 0x7d, 0xa0, 0xb3, 0x1a, 0x4b, 0x3a, 0x7b, 0xcb, 0xea, 0xd9, 0xda, 0x8a, 0x61, 0xbb,
-	0x26, 0x96, 0x78, 0xdf, 0xb4, 0xf0, 0xeb, 0x93, 0x97, 0x97, 0xd7, 0xc9, 0xe8, 0xea, 0x3a, 0x19,
-	0x5d, 0xae, 0x12, 0x74, 0xb5, 0x4a, 0xd0, 0xcf, 0x55, 0x82, 0x7e, 0xfc, 0x4a, 0x46, 0x1f, 0x9f,
-	0xfd, 0xd7, 0x65, 0xac, 0x76, 0xfc, 0x55, 0x3b, 0xfe, 0x1d, 0x00, 0x00, 0xff, 0xff, 0x0c, 0x8c,
-	0x5f, 0xd0, 0xbc, 0x02, 0x00, 0x00,
+	// 456 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x53, 0xd1, 0x6e, 0xd3, 0x30,
+	0x14, 0xad, 0x17, 0xd8, 0xd6, 0xbb, 0x75, 0x14, 0x0b, 0x50, 0x00, 0x2d, 0x94, 0x4a, 0x48, 0x15,
+	0xa0, 0x16, 0x6d, 0x1f, 0x80, 0xb4, 0x49, 0x08, 0x1e, 0x10, 0x28, 0xec, 0x89, 0x97, 0x28, 0x71,
+	0xdc, 0xd8, 0xca, 0x6c, 0x57, 0x71, 0x22, 0x60, 0xdf, 0x00, 0xe2, 0x15, 0xf1, 0x45, 0x7b, 0xdc,
+	0x27, 0xb0, 0xf2, 0x23, 0xc8, 0xbe, 0xc9, 0x4a, 0x79, 0x00, 0x5e, 0xda, 0xe8, 0x9c, 0xe3, 0x7b,
+	0xcf, 0x39, 0x71, 0xe0, 0x59, 0x21, 0x6b, 0xd1, 0x64, 0x53, 0x66, 0xd4, 0xac, 0x2a, 0xd9, 0xa9,
+	0x69, 0x72, 0x26, 0x52, 0xa9, 0x67, 0x85, 0xb1, 0x9f, 0x34, 0x9b, 0xb9, 0x9f, 0x45, 0xe6, 0xff,
+	0xa6, 0x8b, 0xca, 0xd4, 0x86, 0x6e, 0x22, 0x74, 0xef, 0x56, 0x61, 0x0a, 0xe3, 0xa1, 0x99, 0x7b,
+	0x42, 0x76, 0xfc, 0x99, 0xc0, 0xde, 0xb1, 0x68, 0x74, 0x79, 0x2c, 0x38, 0x2b, 0x6d, 0xa3, 0x2c,
+	0xbd, 0x0b, 0xdb, 0xca, 0xe4, 0x49, 0x2d, 0x15, 0x0f, 0xc9, 0x88, 0x4c, 0x82, 0x78, 0x4b, 0x99,
+	0xfc, 0x44, 0x2a, 0x4e, 0x1f, 0xc3, 0x4d, 0x66, 0xf4, 0x5c, 0x16, 0x49, 0x76, 0x6a, 0x58, 0x99,
+	0x58, 0x79, 0xc6, 0xc3, 0x0d, 0xaf, 0xb9, 0x81, 0xc4, 0x91, 0xc3, 0xdf, 0xc9, 0x33, 0x4e, 0x0f,
+	0xa1, 0xcf, 0xba, 0x99, 0x61, 0x30, 0x0a, 0x26, 0x3b, 0x07, 0xb7, 0xa7, 0xe8, 0x65, 0xba, 0xb6,
+	0x31, 0x5e, 0xe9, 0xc6, 0x5f, 0x08, 0x0c, 0xd6, 0x48, 0xfa, 0x00, 0x76, 0x70, 0x97, 0xd4, 0x39,
+	0xff, 0xe8, 0x0d, 0x0d, 0x62, 0xf0, 0xd0, 0x2b, 0x87, 0xd0, 0xfb, 0xd0, 0xff, 0xc0, 0xd3, 0x32,
+	0x11, 0xa9, 0x15, 0xde, 0xcb, 0x20, 0xde, 0x76, 0xc0, 0xcb, 0xd4, 0x0a, 0x77, 0xda, 0xd6, 0x95,
+	0xd1, 0x05, 0xd2, 0xc1, 0x88, 0x4c, 0x76, 0x63, 0x40, 0xc8, 0x0b, 0xf6, 0x01, 0x7e, 0x8b, 0x72,
+	0xcd, 0x47, 0xe9, 0x67, 0x5d, 0x88, 0xf1, 0x57, 0x02, 0xc3, 0xb7, 0x69, 0xcd, 0x04, 0xaf, 0x30,
+	0xd9, 0x22, 0xd5, 0x7f, 0x2b, 0xe8, 0x29, 0x5c, 0x9f, 0x9b, 0x46, 0xe7, 0xe1, 0x86, 0x0f, 0x7c,
+	0xa7, 0x0b, 0xfc, 0xc2, 0x81, 0x57, 0x13, 0x62, 0x14, 0xd1, 0x03, 0xd8, 0x52, 0xd2, 0x5a, 0xa9,
+	0x8b, 0xb6, 0xa0, 0xb0, 0xd3, 0xbf, 0x46, 0x78, 0x75, 0xa2, 0x13, 0x8e, 0xbf, 0x13, 0xd8, 0x5b,
+	0x9f, 0x46, 0x9f, 0xb8, 0xb7, 0xa2, 0x16, 0x69, 0x25, 0xad, 0xd1, 0x89, 0x99, 0xcf, 0x2d, 0xaf,
+	0x5b, 0x63, 0xc3, 0x15, 0xf1, 0xc6, 0xe3, 0xd8, 0x48, 0x5a, 0xd5, 0x6d, 0x9f, 0x58, 0x18, 0x78,
+	0xe8, 0xaa, 0x4f, 0xae, 0xf3, 0x96, 0x0e, 0xb0, 0x4f, 0xae, 0x73, 0x24, 0xff, 0x51, 0xd7, 0x09,
+	0x0c, 0xff, 0x74, 0x4e, 0x1f, 0xc2, 0x2e, 0x2e, 0x5c, 0x33, 0x86, 0x26, 0x5a, 0x4f, 0xfb, 0x00,
+	0x6e, 0x65, 0x2b, 0xc0, 0xfb, 0xe4, 0x4c, 0x20, 0x7d, 0xf4, 0xfc, 0xfc, 0x32, 0xea, 0x5d, 0x5c,
+	0x46, 0xbd, 0xf3, 0x65, 0x44, 0x2e, 0x96, 0x11, 0xf9, 0xb1, 0x8c, 0xc8, 0xb7, 0x9f, 0x51, 0xef,
+	0xfd, 0xa3, 0xff, 0xfa, 0x1a, 0xb2, 0x4d, 0x7f, 0xd7, 0x0f, 0x7f, 0x05, 0x00, 0x00, 0xff, 0xff,
+	0x53, 0x52, 0x79, 0x7b, 0x3d, 0x03, 0x00, 0x00,
 }
 
 func (m *ChunkChecksums) Marshal() (dAtA []byte, err error) {
@@ -292,9 +298,14 @@ func (m *ChunkChecksums) MarshalTo(dAtA []byte) (int, error) {
 		i++
 		i = encodeVarintSync(dAtA, i, uint64(m.ModTime))
 	}
+	if m.ConfigBlockSize != 0 {
+		dAtA[i] = 0x10
+		i++
+		i = encodeVarintSync(dAtA, i, uint64(m.ConfigBlockSize))
+	}
 	if len(m.Checksums) > 0 {
 		for _, msg := range m.Checksums {
-			dAtA[i] = 0x12
+			dAtA[i] = 0x1a
 			i++
 			i = encodeVarintSync(dAtA, i, uint64(msg.Size()))
 			n, err := msg.MarshalTo(dAtA[i:])
@@ -330,21 +341,21 @@ func (m *ChunkChecksum) MarshalTo(dAtA []byte) (int, error) {
 		i++
 		i = encodeVarintSync(dAtA, i, uint64(m.BlockIndex))
 	}
-	if m.BlockSize != 0 {
-		dAtA[i] = 0x10
-		i++
-		i = encodeVarintSync(dAtA, i, uint64(m.BlockSize))
-	}
 	if m.WeakHash != 0 {
-		dAtA[i] = 0x18
+		dAtA[i] = 0x10
 		i++
 		i = encodeVarintSync(dAtA, i, uint64(m.WeakHash))
 	}
 	if len(m.StrongHash) > 0 {
-		dAtA[i] = 0x22
+		dAtA[i] = 0x1a
 		i++
 		i = encodeVarintSync(dAtA, i, uint64(len(m.StrongHash)))
 		i += copy(dAtA[i:], m.StrongHash)
+	}
+	if m.BlockSize != 0 {
+		dAtA[i] = 0x20
+		i++
+		i = encodeVarintSync(dAtA, i, uint64(m.BlockSize))
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -417,13 +428,23 @@ func (m *FoundBlockSpan) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if m.MatchOffset != 0 {
+	if m.ComparisonOffset != 0 {
 		dAtA[i] = 0x8
 		i++
-		i = encodeVarintSync(dAtA, i, uint64(m.MatchOffset))
+		i = encodeVarintSync(dAtA, i, uint64(m.ComparisonOffset))
+	}
+	if m.StartIndex != 0 {
+		dAtA[i] = 0x10
+		i++
+		i = encodeVarintSync(dAtA, i, uint64(m.StartIndex))
+	}
+	if m.EndIndex != 0 {
+		dAtA[i] = 0x18
+		i++
+		i = encodeVarintSync(dAtA, i, uint64(m.EndIndex))
 	}
 	if m.BlockSize != 0 {
-		dAtA[i] = 0x10
+		dAtA[i] = 0x20
 		i++
 		i = encodeVarintSync(dAtA, i, uint64(m.BlockSize))
 	}
@@ -453,11 +474,10 @@ func (m *MissingBlockSpan) MarshalTo(dAtA []byte) (int, error) {
 		i++
 		i = encodeVarintSync(dAtA, i, uint64(m.StartOffset))
 	}
-	if len(m.Data) > 0 {
-		dAtA[i] = 0x12
+	if m.EndOffset != 0 {
+		dAtA[i] = 0x10
 		i++
-		i = encodeVarintSync(dAtA, i, uint64(len(m.Data)))
-		i += copy(dAtA[i:], m.Data)
+		i = encodeVarintSync(dAtA, i, uint64(m.EndOffset))
 	}
 	if m.XXX_unrecognized != nil {
 		i += copy(dAtA[i:], m.XXX_unrecognized)
@@ -483,6 +503,9 @@ func (m *ChunkChecksums) Size() (n int) {
 	if m.ModTime != 0 {
 		n += 1 + sovSync(uint64(m.ModTime))
 	}
+	if m.ConfigBlockSize != 0 {
+		n += 1 + sovSync(uint64(m.ConfigBlockSize))
+	}
 	if len(m.Checksums) > 0 {
 		for _, e := range m.Checksums {
 			l = e.Size()
@@ -504,15 +527,15 @@ func (m *ChunkChecksum) Size() (n int) {
 	if m.BlockIndex != 0 {
 		n += 1 + sovSync(uint64(m.BlockIndex))
 	}
-	if m.BlockSize != 0 {
-		n += 1 + sovSync(uint64(m.BlockSize))
-	}
 	if m.WeakHash != 0 {
 		n += 1 + sovSync(uint64(m.WeakHash))
 	}
 	l = len(m.StrongHash)
 	if l > 0 {
 		n += 1 + l + sovSync(uint64(l))
+	}
+	if m.BlockSize != 0 {
+		n += 1 + sovSync(uint64(m.BlockSize))
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -553,8 +576,14 @@ func (m *FoundBlockSpan) Size() (n int) {
 	}
 	var l int
 	_ = l
-	if m.MatchOffset != 0 {
-		n += 1 + sovSync(uint64(m.MatchOffset))
+	if m.ComparisonOffset != 0 {
+		n += 1 + sovSync(uint64(m.ComparisonOffset))
+	}
+	if m.StartIndex != 0 {
+		n += 1 + sovSync(uint64(m.StartIndex))
+	}
+	if m.EndIndex != 0 {
+		n += 1 + sovSync(uint64(m.EndIndex))
 	}
 	if m.BlockSize != 0 {
 		n += 1 + sovSync(uint64(m.BlockSize))
@@ -574,9 +603,8 @@ func (m *MissingBlockSpan) Size() (n int) {
 	if m.StartOffset != 0 {
 		n += 1 + sovSync(uint64(m.StartOffset))
 	}
-	l = len(m.Data)
-	if l > 0 {
-		n += 1 + l + sovSync(uint64(l))
+	if m.EndOffset != 0 {
+		n += 1 + sovSync(uint64(m.EndOffset))
 	}
 	if m.XXX_unrecognized != nil {
 		n += len(m.XXX_unrecognized)
@@ -646,6 +674,25 @@ func (m *ChunkChecksums) Unmarshal(dAtA []byte) error {
 				}
 			}
 		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ConfigBlockSize", wireType)
+			}
+			m.ConfigBlockSize = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSync
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ConfigBlockSize |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Checksums", wireType)
 			}
@@ -754,25 +801,6 @@ func (m *ChunkChecksum) Unmarshal(dAtA []byte) error {
 			}
 		case 2:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BlockSize", wireType)
-			}
-			m.BlockSize = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowSync
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.BlockSize |= int64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 3:
-			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field WeakHash", wireType)
 			}
 			m.WeakHash = 0
@@ -790,7 +818,7 @@ func (m *ChunkChecksum) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 4:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field StrongHash", wireType)
 			}
@@ -824,6 +852,25 @@ func (m *ChunkChecksum) Unmarshal(dAtA []byte) error {
 				m.StrongHash = []byte{}
 			}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlockSize", wireType)
+			}
+			m.BlockSize = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSync
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.BlockSize |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipSync(dAtA[iNdEx:])
@@ -1021,9 +1068,9 @@ func (m *FoundBlockSpan) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field MatchOffset", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ComparisonOffset", wireType)
 			}
-			m.MatchOffset = 0
+			m.ComparisonOffset = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowSync
@@ -1033,12 +1080,50 @@ func (m *FoundBlockSpan) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.MatchOffset |= int64(b&0x7F) << shift
+				m.ComparisonOffset |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
 		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StartIndex", wireType)
+			}
+			m.StartIndex = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSync
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.StartIndex |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EndIndex", wireType)
+			}
+			m.EndIndex = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSync
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.EndIndex |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field BlockSize", wireType)
 			}
@@ -1131,10 +1216,10 @@ func (m *MissingBlockSpan) Unmarshal(dAtA []byte) error {
 				}
 			}
 		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EndOffset", wireType)
 			}
-			var byteLen int
+			m.EndOffset = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowSync
@@ -1144,26 +1229,11 @@ func (m *MissingBlockSpan) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				m.EndOffset |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
-				return ErrInvalidLengthSync
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthSync
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Data = append(m.Data[:0], dAtA[iNdEx:postIndex]...)
-			if m.Data == nil {
-				m.Data = []byte{}
-			}
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipSync(dAtA[iNdEx:])

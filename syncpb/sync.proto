@@ -12,14 +12,15 @@ option (gogoproto.goproto_enum_prefix_all) = false;
 
 message ChunkChecksums {
     int64 mod_time = 1;
-    repeated ChunkChecksum checksums = 2;
+    int64 config_block_size = 2;
+    repeated ChunkChecksum checksums = 3;
 }
 
 message ChunkChecksum {
     uint32 block_index = 1;
-    int64 block_size = 2;
-    uint32 weak_hash = 3;
-    bytes strong_hash = 4;
+    uint32 weak_hash = 2;
+    bytes strong_hash = 3;
+    int64 block_size = 4;
 }
 
 message PatcherBlockSpan {
@@ -29,11 +30,13 @@ message PatcherBlockSpan {
 }
 
 message FoundBlockSpan {
-    int64 match_offset = 1;
-    int64 block_size = 2;
+    int64 comparison_offset = 1;
+    uint32 start_index = 2;
+    uint32 end_index = 3;
+    int64 block_size = 4;
 }
 
 message MissingBlockSpan {
     int64 start_offset = 1;
-    bytes data = 2;
+    int64 end_offset = 2;
 }
