@@ -26,8 +26,6 @@ func newRSync(c *Config) *rsync {
 	return &rsync{
 		blockSize:        c.BlockSize,
 		strongHasher:     c.StrongHasher,
-		sizeFunc:         func() (int64, error) { return c.FileAccessor.GetFileSize() },
-		reference:        c.Requester,
 		requestBlockSize: c.MaxRequestBlockSize,
 	}
 }
@@ -35,13 +33,22 @@ func newRSync(c *Config) *rsync {
 type rsync struct {
 	blockSize        int64
 	strongHasher     hash.Hash
-	reference        BlockRequester
-	sizeFunc         func() (int64, error)
 	requestBlockSize int64
+	sizeFunc         func() (int64, error)
+	reference        BlockRequester
+}
+
+func (r *rsync) Sign(dest io.Reader) (*syncpb.ChunkChecksums, error) {
+	checksums, err := r.createSign(dest)
+	if err != nil {
+		return nil, err
+	}
+
+	return &syncpb.ChunkChecksums{ConfigBlockSize: r.blockSize, Checksums: checksums}, nil
 }
 
 // Sign reads each block of the input file, and returns the checksums for each block.
-func (r *rsync) Sign(dest io.Reader) ([]*syncpb.ChunkChecksum, error) {
+func (r *rsync) createSign(dest io.Reader) ([]*syncpb.ChunkChecksum, error) {
 	defer r.strongHasher.Reset()
 
 	buffer := make([]byte, r.blockSize)
@@ -72,9 +79,11 @@ func (r *rsync) Sign(dest io.Reader) ([]*syncpb.ChunkChecksum, error) {
 	return checksums, nil
 }
 
-func (r *rsync) Patch(localFile io.ReadSeeker, localBlocks []*syncpb.FoundBlockSpan, remoteBlocks []*syncpb.MissingBlockSpan, output io.Writer) error {
+func (r *rsync) Patch(localFile io.ReadSeeker, patcher *syncpb.PatcherBlockSpan, output io.Writer) error {
 
 	currentOffset := int64(0)
+	localBlocks := patcher.Found[:]
+	remoteBlocks := patcher.Missing[:]
 
 	for len(localBlocks) > 0 || len(remoteBlocks) > 0 {
 		if r.findInLocalBlocks(currentOffset, localBlocks) {
@@ -112,17 +121,17 @@ func (r *rsync) Patch(localFile io.ReadSeeker, localBlocks []*syncpb.FoundBlockS
 	return nil
 }
 
-func (r *rsync) Delta(source io.ReaderAt, blockSize int64, checksums []*syncpb.ChunkChecksum) (*syncpb.PatcherBlockSpan, error) {
-	matches, err := r.match(source, blockSize, checksums)
+func (r *rsync) Delta(source io.ReaderAt, checksums *syncpb.ChunkChecksums) (*syncpb.PatcherBlockSpan, error) {
+	matches, err := r.match(source, checksums.ConfigBlockSize, checksums.Checksums)
 	if err != nil {
 		return nil, err
 	}
 
 	merger := newMerger()
-	merger.MergeResult(matches, blockSize)
+	merger.MergeResult(matches, checksums.ConfigBlockSize)
 
 	mergedBlocks := merger.GetMergedBlocks()
-	missing, err := r.fetchMissingBlocks(mergedBlocks, blockSize)
+	missing, err := r.fetchMissingBlocks(mergedBlocks, checksums.ConfigBlockSize)
 	if err != nil {
 		return nil, err
 	}

@@ -53,12 +53,12 @@ func TestPatch(t *testing.T) {
 
 	checksums, err := r.Sign(dst)
 	assert.NoError(t, err)
-	assert.Len(t, checksums, 6)
+	assert.Len(t, checksums.Checksums, 6)
 
-	patcher, err := r.Delta(reader, 2, checksums)
+	patcher, err := r.Delta(reader, checksums)
 	assert.NoError(t, err)
 
-	err = r.Patch(dst, patcher.Found, patcher.Missing, output)
+	err = r.Patch(dst, patcher, output)
 	assert.NoError(t, err)
 	assert.Equal(t, src, output.Bytes())
 }

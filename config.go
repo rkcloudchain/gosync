@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"hash"
 	"io"
-	"os"
 	"time"
 
 	"github.com/rkcloudchain/gosync/logging"
@@ -45,15 +44,6 @@ type Config struct {
 	// Logger is the logger used for gosync log.
 	Logger logging.Logger
 
-	// Directory for storing temporary files
-	TempFileDir string
-
-	// FileAccessor implementation
-	FileAccessor FileAccessor
-
-	// RequestUpgradeInterval determins frequency of gosync request update phases
-	RequestUpdateInterval time.Duration
-
 	// A hash function for calculating a strong checksum
 	StrongHasher hash.Hash
 
@@ -62,6 +52,9 @@ type Config struct {
 
 	// Resolver is an interface used by the patchers to obtain blocks from the source.
 	Requester BlockRequester
+
+	// Function for getting the file size
+	SizeFunc func() (int64, error)
 }
 
 func (c *Config) validate() error {
@@ -73,24 +66,16 @@ func (c *Config) validate() error {
 		return errors.New("Block requester must be specified")
 	}
 
-	if c.FileAccessor == nil {
-		return errors.New("File accessor must be specified")
+	if c.SizeFunc == nil {
+		return errors.New("File size function must be specified")
 	}
 
 	if c.BlockSize == 0 {
 		c.BlockSize = defaultBlockSize
 	}
 
-	if c.TempFileDir == "" {
-		c.TempFileDir = os.TempDir()
-	}
-
 	if c.Logger != nil {
 		logging.SetLogger(c.Logger)
-	}
-
-	if c.RequestUpdateInterval == 0 {
-		c.RequestUpdateInterval = 4 * time.Second
 	}
 
 	if c.StrongHasher == nil {

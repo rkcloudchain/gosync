@@ -1,18 +1,18 @@
 package gosync
 
 import (
+	"io"
+
 	"github.com/rkcloudchain/gosync/syncpb"
 )
 
 // GoSync represents a rsync service
 type GoSync interface {
-	Delta(*syncpb.ChunkChecksums) (*syncpb.PatcherBlockSpan, error)
+	Sign(io.Reader) (*syncpb.ChunkChecksums, error)
 
-	Patch(*syncpb.PatcherBlockSpan) error
+	Delta(io.ReaderAt, *syncpb.ChunkChecksums) (*syncpb.PatcherBlockSpan, error)
 
-	SignReady() <-chan *syncpb.ChunkChecksums
-
-	Stop()
+	Patch(io.ReadSeeker, *syncpb.PatcherBlockSpan, io.Writer) error
 }
 
 // Start returns a new gosync instance given configuration.
@@ -22,7 +22,5 @@ func Start(c *Config) GoSync {
 	}
 
 	r := newRSync(c)
-	n := newNode(c, r)
-	go n.run()
-	return n
+	return r
 }

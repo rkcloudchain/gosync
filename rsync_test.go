@@ -15,7 +15,7 @@ func TestEmptyReaders(t *testing.T) {
 	r := &rsync{blockSize: 64 * 1024, strongHasher: md5.New()}
 	checksums, err := r.Sign(bytes.NewReader(nil))
 	assert.NoError(t, err)
-	assert.Len(t, checksums, 0)
+	assert.Len(t, checksums.Checksums, 0)
 }
 
 func TestGenerateChecksums(t *testing.T) {
@@ -27,7 +27,7 @@ func TestGenerateChecksums(t *testing.T) {
 	r := &rsync{blockSize: 512 * 1024, strongHasher: md5.New()}
 	checksums, err := r.Sign(bytes.NewReader(data))
 	assert.NoError(t, err)
-	assert.Len(t, checksums, 8)
+	assert.Len(t, checksums.Checksums, 8)
 }
 
 func TestGenerateChecksums2(t *testing.T) {
@@ -39,7 +39,7 @@ func TestGenerateChecksums2(t *testing.T) {
 	r := &rsync{blockSize: 512 * 1024, strongHasher: sha256.New()}
 	checksums, err := r.Sign(bytes.NewReader(data))
 	assert.NoError(t, err)
-	checksum := checksums[len(checksums)-1]
+	checksum := checksums.Checksums[len(checksums.Checksums)-1]
 	assert.NotEqual(t, 512*1024, checksum.Size())
 }
 
@@ -47,8 +47,8 @@ func TestGenerateChecksums3(t *testing.T) {
 	r := &rsync{blockSize: 2, strongHasher: md5.New()}
 	checksums, err := r.Sign(bytes.NewReader([]byte("hello world")))
 	assert.NoError(t, err)
-	assert.Len(t, checksums, 6)
-	assert.Equal(t, int64(1), checksums[5].BlockSize)
+	assert.Len(t, checksums.Checksums, 6)
+	assert.Equal(t, int64(1), checksums.Checksums[5].BlockSize)
 }
 
 func TestMatch(t *testing.T) {
@@ -57,10 +57,10 @@ func TestMatch(t *testing.T) {
 
 	checksums, err := r.Sign(reader)
 	assert.NoError(t, err)
-	assert.Len(t, checksums, 4)
+	assert.Len(t, checksums.Checksums, 4)
 
 	source := bytes.NewReader([]byte("123xxabc def"))
-	results, err := r.match(source, r.blockSize, checksums)
+	results, err := r.match(source, r.blockSize, checksums.Checksums)
 	assert.NoError(t, err)
 	assert.Len(t, results, 3)
 
@@ -75,10 +75,10 @@ func TestMatch2(t *testing.T) {
 
 	checksums, err := r.Sign(reader)
 	assert.NoError(t, err)
-	assert.Len(t, checksums, 3)
+	assert.Len(t, checksums.Checksums, 3)
 
 	source := bytes.NewReader([]byte("helllo"))
-	results, err := r.match(source, 2, checksums)
+	results, err := r.match(source, 2, checksums.Checksums)
 	assert.NoError(t, err)
 	assert.Len(t, results, 3)
 
@@ -96,9 +96,9 @@ func TestDelta(t *testing.T) {
 	r := &rsync{blockSize: 4, strongHasher: md5.New(), sizeFunc: func() (int64, error) { return int64(len(bs)), nil }}
 	checksums, err := r.Sign(dst)
 	assert.NoError(t, err)
-	assert.Len(t, checksums, 4)
+	assert.Len(t, checksums.Checksums, 4)
 
-	patcher, err := r.Delta(src, 4, checksums)
+	patcher, err := r.Delta(src, checksums)
 	assert.NoError(t, err)
 	assert.Len(t, patcher.Found, 3)
 	assert.Len(t, patcher.Missing, 3)
@@ -128,7 +128,7 @@ func TestEmptyData(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, checksums, 0)
 
-	patcher, err := r.Delta(reader, 4, checksums)
+	patcher, err := r.Delta(reader, checksums)
 	assert.NoError(t, err)
 	assert.Len(t, patcher.Found, 0)
 	assert.Len(t, patcher.Missing, 1)
@@ -146,7 +146,7 @@ func TestSplitMissingBlocks(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, checksums, 3)
 
-	patcher, err := r.Delta(reader, 2, checksums)
+	patcher, err := r.Delta(reader, checksums)
 	assert.NoError(t, err)
 	assert.Len(t, patcher.Found, 2)
 	assert.Len(t, patcher.Missing, 5)
