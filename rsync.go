@@ -27,7 +27,7 @@ func newRSync(c *Config) *rsync {
 		blockSize:        c.BlockSize,
 		strongHasher:     c.StrongHasher,
 		sizeFunc:         func() (int64, error) { return c.FileAccessor.GetFileSize() },
-		reference:        c.Resolver,
+		reference:        c.Requester,
 		requestBlockSize: c.MaxRequestBlockSize,
 	}
 }
@@ -35,7 +35,7 @@ func newRSync(c *Config) *rsync {
 type rsync struct {
 	blockSize        int64
 	strongHasher     hash.Hash
-	reference        BlockResolver
+	reference        BlockRequester
 	sizeFunc         func() (int64, error)
 	requestBlockSize int64
 }
@@ -76,7 +76,7 @@ func (r *rsync) Patch(localFile io.ReadSeeker, localBlocks []*syncpb.FoundBlockS
 
 	currentOffset := int64(0)
 
-	for len(localBlocks) > 0 && len(remoteBlocks) > 0 {
+	for len(localBlocks) > 0 || len(remoteBlocks) > 0 {
 		if r.findInLocalBlocks(currentOffset, localBlocks) {
 			firstMatched := localBlocks[0]
 
@@ -92,20 +92,16 @@ func (r *rsync) Patch(localFile io.ReadSeeker, localBlocks []*syncpb.FoundBlockS
 		} else if r.findInRemoteBlocks(currentOffset, remoteBlocks) {
 
 			firstMissing := remoteBlocks[0]
-			result, err := r.reference.RequestBlock(firstMissing)
+			data, err := r.reference.DoRequest(firstMissing.StartOffset, firstMissing.EndOffset)
 			if err != nil {
 				return fmt.Errorf("Failed to read from reference file: %v", err)
 			}
 
-			if result.StartOffset != currentOffset {
-				return fmt.Errorf("Received unexpected block: %d", result.StartOffset)
-			}
-
-			if _, err := output.Write(result.Data); err != nil {
+			if _, err := output.Write(data); err != nil {
 				return fmt.Errorf("Could not write data to output: %v", err)
 			}
 
-			currentOffset += int64(len(result.Data))
+			currentOffset += int64(len(data))
 			remoteBlocks = remoteBlocks[1:]
 
 		} else {

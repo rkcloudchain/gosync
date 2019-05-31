@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/rkcloudchain/gosync/logging"
-	"github.com/rkcloudchain/gosync/syncpb"
 )
 
 const (
@@ -25,9 +24,9 @@ type ReadSeekerAt interface {
 	io.ReaderAt
 }
 
-// BlockResolver is an interface used by the patchers to obtain blocks from the source.
-type BlockResolver interface {
-	RequestBlock(*syncpb.MissingBlockSpan) (*syncpb.BlockResponse, error)
+// BlockRequester does synchronous requests on a remote source of blocks
+type BlockRequester interface {
+	DoRequest(startOffset int64, enfOffset int64) (data []byte, err error)
 }
 
 // FileAccessor combines many of the interfaces that are needed
@@ -62,7 +61,7 @@ type Config struct {
 	MaxRequestBlockSize int64
 
 	// Resolver is an interface used by the patchers to obtain blocks from the source.
-	Resolver BlockResolver
+	Requester BlockRequester
 }
 
 func (c *Config) validate() error {
@@ -70,8 +69,8 @@ func (c *Config) validate() error {
 		return fmt.Errorf("Invalid block length %d", c.BlockSize)
 	}
 
-	if c.Resolver == nil {
-		return errors.New("Block resolver must be specified")
+	if c.Requester == nil {
+		return errors.New("Block requester must be specified")
 	}
 
 	if c.FileAccessor == nil {
