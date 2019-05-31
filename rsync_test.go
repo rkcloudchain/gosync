@@ -71,7 +71,7 @@ func TestMatch(t *testing.T) {
 
 func TestMatch2(t *testing.T) {
 	reader := bytes.NewReader([]byte("hello"))
-	r := newRSync(2, sha256.New(), func() (int64, error) { return int64(2), nil })
+	r := &rsync{blockSize: 2, strongHasher: sha256.New(), sizeFunc: func() (int64, error) { return int64(2), nil }}
 
 	checksums, err := r.Sign(reader)
 	assert.NoError(t, err)
@@ -93,7 +93,7 @@ func TestDelta(t *testing.T) {
 	bs := []byte("123aabb456ccdd789ee321ff21gg")
 	src := bytes.NewReader(bs)
 
-	r := newRSync(4, md5.New(), func() (int64, error) { return int64(len(bs)), nil })
+	r := &rsync{blockSize: 4, strongHasher: md5.New(), sizeFunc: func() (int64, error) { return int64(len(bs)), nil }}
 	checksums, err := r.Sign(dst)
 	assert.NoError(t, err)
 	assert.Len(t, checksums, 4)
@@ -107,8 +107,8 @@ func TestDelta(t *testing.T) {
 	assert.Equal(t, uint32(0), patcher.Found[0].EndIndex)
 	assert.Equal(t, uint32(1), patcher.Found[1].StartIndex)
 	assert.Equal(t, uint32(1), patcher.Found[1].EndIndex)
-	assert.Equal(t, uint32(2), patcher.Found[3].StartIndex)
-	assert.Equal(t, uint32(2), patcher.Found[3].StartIndex)
+	assert.Equal(t, uint32(3), patcher.Found[2].StartIndex)
+	assert.Equal(t, uint32(3), patcher.Found[2].StartIndex)
 
 	assert.Equal(t, int64(0), patcher.Missing[0].StartOffset)
 	assert.Equal(t, int64(2), patcher.Missing[0].EndOffset)
@@ -116,4 +116,38 @@ func TestDelta(t *testing.T) {
 	assert.Equal(t, int64(9), patcher.Missing[1].EndOffset)
 	assert.Equal(t, int64(14), patcher.Missing[2].StartOffset)
 	assert.Equal(t, int64(25), patcher.Missing[2].EndOffset)
+}
+
+func TestEmptyData(t *testing.T) {
+	dst := bytes.NewReader(nil)
+	src := []byte("abcdefghijklmn")
+	reader := bytes.NewReader(src)
+
+	r := &rsync{blockSize: 4, strongHasher: md5.New(), sizeFunc: func() (int64, error) { return int64(len(src)), nil }}
+	checksums, err := r.Sign(dst)
+	assert.NoError(t, err)
+	assert.Len(t, checksums, 0)
+
+	patcher, err := r.Delta(reader, 4, checksums)
+	assert.NoError(t, err)
+	assert.Len(t, patcher.Found, 0)
+	assert.Len(t, patcher.Missing, 1)
+	assert.Equal(t, int64(0), patcher.Missing[0].StartOffset)
+	assert.Equal(t, int64(len(src)-1), patcher.Missing[0].EndOffset)
+}
+
+func TestSplitMissingBlocks(t *testing.T) {
+	dst := bytes.NewReader([]byte("hello"))
+	src := []byte("he1234567890llo")
+	reader := bytes.NewReader(src)
+
+	r := &rsync{blockSize: 2, strongHasher: md5.New(), sizeFunc: func() (int64, error) { return int64(len(src)), nil }, requestBlockSize: 2}
+	checksums, err := r.Sign(dst)
+	assert.NoError(t, err)
+	assert.Len(t, checksums, 3)
+
+	patcher, err := r.Delta(reader, 2, checksums)
+	assert.NoError(t, err)
+	assert.Len(t, patcher.Found, 2)
+	assert.Len(t, patcher.Missing, 5)
 }

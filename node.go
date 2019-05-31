@@ -19,7 +19,7 @@ var (
 
 func newNode(c *Config, r *rsync) *node {
 	return &node{
-		requestChan:     make(chan *syncpb.ChunkChecksums),
+		signChan:        make(chan *syncpb.ChunkChecksums),
 		stop:            make(chan struct{}, 1),
 		r:               r,
 		requestInterval: c.RequestUpdateInterval,
@@ -30,7 +30,7 @@ func newNode(c *Config, r *rsync) *node {
 
 // node represents a gosync node
 type node struct {
-	requestChan     chan *syncpb.ChunkChecksums
+	signChan        chan *syncpb.ChunkChecksums
 	stop            chan struct{}
 	r               *rsync
 	lock            sync.RWMutex
@@ -40,7 +40,7 @@ type node struct {
 }
 
 func (n *node) SignReady() <-chan *syncpb.ChunkChecksums {
-	return n.requestChan
+	return n.signChan
 }
 
 func (n *node) Delta(checksums *syncpb.ChunkChecksums) (*syncpb.PatcherBlockSpan, error) {
@@ -123,7 +123,7 @@ func (n *node) run() {
 				continue
 			}
 
-			n.requestChan <- checksums
+			n.signChan <- checksums
 
 		case <-n.stop:
 			logging.Info("Stop gosync service")

@@ -21,7 +21,7 @@ func Start(c *Config) GoSync {
 		panic(err.Error())
 	}
 
-	r := newRSync(c.BlockSize, c.StrongHasher, func() (int64, error) { return c.FileAccessor.GetFileSize() })
+	r := newRSync(c)
 	n := newNode(c, r)
 	go n.run()
 	return n
