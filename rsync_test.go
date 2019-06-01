@@ -126,7 +126,7 @@ func TestEmptyData(t *testing.T) {
 	r := &rsync{blockSize: 4, strongHasher: md5.New(), sizeFunc: func() (int64, error) { return int64(len(src)), nil }}
 	checksums, err := r.Sign(dst)
 	assert.NoError(t, err)
-	assert.Len(t, checksums, 0)
+	assert.Len(t, checksums.Checksums, 0)
 
 	patcher, err := r.Delta(reader, checksums)
 	assert.NoError(t, err)
@@ -144,7 +144,7 @@ func TestSplitMissingBlocks(t *testing.T) {
 	r := &rsync{blockSize: 2, strongHasher: md5.New(), sizeFunc: func() (int64, error) { return int64(len(src)), nil }, requestBlockSize: 2}
 	checksums, err := r.Sign(dst)
 	assert.NoError(t, err)
-	assert.Len(t, checksums, 3)
+	assert.Len(t, checksums.Checksums, 3)
 
 	patcher, err := r.Delta(reader, checksums)
 	assert.NoError(t, err)
