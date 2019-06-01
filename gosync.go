@@ -15,12 +15,12 @@ type GoSync interface {
 	Patch(io.ReadSeeker, *syncpb.PatcherBlockSpan, io.Writer) error
 }
 
-// Start returns a new gosync instance given configuration.
-func Start(c *Config) GoSync {
+// New returns a new gosync instance given configuration.
+func New(c *Config) (GoSync, error) {
 	if err := c.validate(); err != nil {
-		panic(err.Error())
+		return nil, err
 	}
 
 	r := newRSync(c)
-	return r
+	return r, nil
 }

@@ -27,6 +27,8 @@ func newRSync(c *Config) *rsync {
 		blockSize:        c.BlockSize,
 		strongHasher:     c.StrongHasher,
 		requestBlockSize: c.MaxRequestBlockSize,
+		sizeFunc:         c.SizeFunc,
+		reference:        c.Requester,
 	}
 }
 

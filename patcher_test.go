@@ -62,3 +62,31 @@ func TestPatch(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, src, output.Bytes())
 }
+
+func TestGoRSync(t *testing.T) {
+	local := bytes.NewReader([]byte("The qwik brown fox jumped 0v3r the lazy"))
+	reference := []byte("The quick brown fox jumped over the lazy dog")
+	reader := bytes.NewReader(reference)
+
+	cfg := &Config{
+		BlockSize:           4,
+		StrongHasher:        sha256.New(),
+		MaxRequestBlockSize: 16,
+		Requester:           NewReadSeekerRequester(reader),
+		SizeFunc:            func() (int64, error) { return int64(len(reference)), nil },
+	}
+
+	r, err := New(cfg)
+	assert.NoError(t, err)
+
+	checksums, err := r.Sign(local)
+	assert.NoError(t, err)
+
+	patcher, err := r.Delta(reader, checksums)
+	assert.NoError(t, err)
+
+	output := bytes.NewBuffer(nil)
+	err = r.Patch(local, patcher, output)
+	assert.NoError(t, err)
+	assert.Equal(t, reference, output.Bytes())
+}
