@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"hash"
 	"io"
-	"time"
 
 	"github.com/rkcloudchain/gosync/logging"
 )
@@ -26,14 +25,6 @@ type ReadSeekerAt interface {
 // BlockRequester does synchronous requests on a remote source of blocks
 type BlockRequester interface {
 	DoRequest(startOffset int64, enfOffset int64) (data []byte, err error)
-}
-
-// FileAccessor combines many of the interfaces that are needed
-type FileAccessor interface {
-	GetFileSize() (int64, error)
-	GetFileModTime() (time.Time, error)
-	ReadFile() (ReadSeekerAt, error)
-	CopyFile(src io.Reader) error
 }
 
 // Config contains the parameters to start a gosync service.
