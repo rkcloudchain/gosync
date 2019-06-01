@@ -1,0 +1,21 @@
+dist: xenial
+language: go
+
+go:
+  - 1.12.x
+
+env:
+  - GO111MODULE=on
+
+branches:
+  only:
+    - master
+
+before_install:
+  - go get -t -v ./...
+
+script:
+  - ./go.test.sh
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash) -t af9849da-1cfe-4ae7-b32a-34fad4514e3a

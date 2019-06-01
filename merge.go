@@ -17,7 +17,7 @@ type matchMerger struct {
 func (merger *matchMerger) MergeResult(results []blockMatchResult, blockSize int64) {
 	for _, result := range results {
 		blockID := result.Index
-		preceeding := merger.blockMap.Get(blockSpanKey(blockID - 1))
+		preceding := merger.blockMap.Get(blockSpanKey(blockID - 1))
 		following := merger.blockMap.Get(blockSpanKey(blockID + 1))
 
 		span := merger.toBlockSpan(result)
@@ -49,14 +49,14 @@ func (merger *matchMerger) MergeResult(results []blockMatchResult, blockSize int
 
 		merger.blockMap.ReplaceOrInsert(blockSpanStart(*merger.toBlockSpan(result)))
 
-		if preceeding != nil && following != nil {
-			a := merger.itemToBlockSpan(preceeding)
+		if preceding != nil && following != nil {
+			a := merger.itemToBlockSpan(preceding)
 			merger.merge(span, &a, blockSize)
 
 			b := merger.itemToBlockSpan(following)
 			merger.merge(&a, &b, blockSize)
-		} else if preceeding != nil {
-			a := merger.itemToBlockSpan(preceeding)
+		} else if preceding != nil {
+			a := merger.itemToBlockSpan(preceding)
 			merger.merge(span, &a, blockSize)
 		} else if following != nil {
 			b := merger.itemToBlockSpan(following)
