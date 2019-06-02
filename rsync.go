@@ -6,6 +6,7 @@ import (
 	"hash/adler32"
 	"io"
 
+	"github.com/rkcloudchain/gosync/logging"
 	"github.com/rkcloudchain/gosync/syncpb"
 )
 
@@ -40,17 +41,14 @@ type rsync struct {
 	reference        BlockRequester
 }
 
-func (r *rsync) Sign(dest io.Reader) (*syncpb.ChunkChecksums, error) {
-	checksums, err := r.createSign(dest)
-	if err != nil {
-		return nil, err
-	}
-
-	return &syncpb.ChunkChecksums{ConfigBlockSize: r.blockSize, Checksums: checksums}, nil
+func (r *rsync) Sign(dest io.Reader) *syncpb.ChunkChecksums {
+	checksums := r.createSign(dest)
+	logging.Debugf("Config block size: %d, generate %d checksums: %v", r.blockSize, len(checksums), checksums)
+	return &syncpb.ChunkChecksums{ConfigBlockSize: r.blockSize, Checksums: checksums}
 }
 
 // Sign reads each block of the input file, and returns the checksums for each block.
-func (r *rsync) createSign(dest io.Reader) ([]*syncpb.ChunkChecksum, error) {
+func (r *rsync) createSign(dest io.Reader) []*syncpb.ChunkChecksum {
 	defer r.strongHasher.Reset()
 
 	buffer := make([]byte, r.blockSize)
@@ -78,7 +76,7 @@ func (r *rsync) createSign(dest io.Reader) ([]*syncpb.ChunkChecksum, error) {
 		index++
 	}
 
-	return checksums, nil
+	return checksums
 }
 
 func (r *rsync) Patch(localFile io.ReadSeeker, patcher *syncpb.PatcherBlockSpan, output io.Writer) error {
@@ -89,6 +87,7 @@ func (r *rsync) Patch(localFile io.ReadSeeker, patcher *syncpb.PatcherBlockSpan,
 
 	for len(localBlocks) > 0 || len(remoteBlocks) > 0 {
 		if r.findInLocalBlocks(currentOffset, localBlocks) {
+			logging.Debugf("Found local block %d", currentOffset)
 			firstMatched := localBlocks[0]
 
 			matchOffset := r.blockSize * int64(firstMatched.StartIndex)
@@ -101,6 +100,7 @@ func (r *rsync) Patch(localFile io.ReadSeeker, patcher *syncpb.PatcherBlockSpan,
 			currentOffset += firstMatched.BlockSize
 			localBlocks = localBlocks[1:]
 		} else if r.findInRemoteBlocks(currentOffset, remoteBlocks) {
+			logging.Debugf("Found remote block: %d", currentOffset)
 
 			firstMissing := remoteBlocks[0]
 			data, err := r.reference.DoRequest(firstMissing.StartOffset, firstMissing.EndOffset)
@@ -116,6 +116,7 @@ func (r *rsync) Patch(localFile io.ReadSeeker, patcher *syncpb.PatcherBlockSpan,
 			remoteBlocks = remoteBlocks[1:]
 
 		} else {
+			logging.Errorf("Can't find any block with offset: %d", currentOffset)
 			return fmt.Errorf("Could not find block offset in missing or matched list: %d", currentOffset)
 		}
 	}
@@ -128,6 +129,7 @@ func (r *rsync) Delta(source io.ReaderAt, checksums *syncpb.ChunkChecksums) (*sy
 	if err != nil {
 		return nil, err
 	}
+	logging.Debugf("Found %d match blocks: %v", len(matches), matches)
 
 	merger := newMerger()
 	merger.MergeResult(matches, checksums.ConfigBlockSize)
@@ -137,6 +139,7 @@ func (r *rsync) Delta(source io.ReaderAt, checksums *syncpb.ChunkChecksums) (*sy
 	if err != nil {
 		return nil, err
 	}
+	logging.Debugf("Found %d missing blocks: %v", len(missing), missing)
 
 	patcher := &syncpb.PatcherBlockSpan{Found: r.patchFoundSpan(mergedBlocks), Missing: r.splitMissingBlocks(missing)}
 	return patcher, nil

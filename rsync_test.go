@@ -13,8 +13,7 @@ import (
 
 func TestEmptyReaders(t *testing.T) {
 	r := &rsync{blockSize: 64 * 1024, strongHasher: md5.New()}
-	checksums, err := r.Sign(bytes.NewReader(nil))
-	assert.NoError(t, err)
+	checksums := r.Sign(bytes.NewReader(nil))
 	assert.Len(t, checksums.Checksums, 0)
 }
 
@@ -25,8 +24,7 @@ func TestGenerateChecksums(t *testing.T) {
 	require.Equal(t, 4*1024*1024, n)
 
 	r := &rsync{blockSize: 512 * 1024, strongHasher: md5.New()}
-	checksums, err := r.Sign(bytes.NewReader(data))
-	assert.NoError(t, err)
+	checksums := r.Sign(bytes.NewReader(data))
 	assert.Len(t, checksums.Checksums, 8)
 }
 
@@ -37,16 +35,14 @@ func TestGenerateChecksums2(t *testing.T) {
 	require.Equal(t, 8520959, n)
 
 	r := &rsync{blockSize: 512 * 1024, strongHasher: sha256.New()}
-	checksums, err := r.Sign(bytes.NewReader(data))
-	assert.NoError(t, err)
+	checksums := r.Sign(bytes.NewReader(data))
 	checksum := checksums.Checksums[len(checksums.Checksums)-1]
 	assert.NotEqual(t, 512*1024, checksum.Size())
 }
 
 func TestGenerateChecksums3(t *testing.T) {
 	r := &rsync{blockSize: 2, strongHasher: md5.New()}
-	checksums, err := r.Sign(bytes.NewReader([]byte("hello world")))
-	assert.NoError(t, err)
+	checksums := r.Sign(bytes.NewReader([]byte("hello world")))
 	assert.Len(t, checksums.Checksums, 6)
 	assert.Equal(t, int64(1), checksums.Checksums[5].BlockSize)
 }
@@ -55,8 +51,7 @@ func TestMatch(t *testing.T) {
 	reader := bytes.NewReader([]byte("123abcdefg"))
 	r := &rsync{blockSize: 3, strongHasher: md5.New()}
 
-	checksums, err := r.Sign(reader)
-	assert.NoError(t, err)
+	checksums := r.Sign(reader)
 	assert.Len(t, checksums.Checksums, 4)
 
 	source := bytes.NewReader([]byte("123xxabc def"))
@@ -73,8 +68,7 @@ func TestMatch2(t *testing.T) {
 	reader := bytes.NewReader([]byte("hello"))
 	r := &rsync{blockSize: 2, strongHasher: sha256.New(), sizeFunc: func() (int64, error) { return int64(2), nil }}
 
-	checksums, err := r.Sign(reader)
-	assert.NoError(t, err)
+	checksums := r.Sign(reader)
 	assert.Len(t, checksums.Checksums, 3)
 
 	source := bytes.NewReader([]byte("helllo"))
@@ -94,8 +88,7 @@ func TestDelta(t *testing.T) {
 	src := bytes.NewReader(bs)
 
 	r := &rsync{blockSize: 4, strongHasher: md5.New(), sizeFunc: func() (int64, error) { return int64(len(bs)), nil }}
-	checksums, err := r.Sign(dst)
-	assert.NoError(t, err)
+	checksums := r.Sign(dst)
 	assert.Len(t, checksums.Checksums, 4)
 
 	patcher, err := r.Delta(src, checksums)
@@ -124,8 +117,7 @@ func TestEmptyData(t *testing.T) {
 	reader := bytes.NewReader(src)
 
 	r := &rsync{blockSize: 4, strongHasher: md5.New(), sizeFunc: func() (int64, error) { return int64(len(src)), nil }}
-	checksums, err := r.Sign(dst)
-	assert.NoError(t, err)
+	checksums := r.Sign(dst)
 	assert.Len(t, checksums.Checksums, 0)
 
 	patcher, err := r.Delta(reader, checksums)
@@ -142,8 +134,7 @@ func TestSplitMissingBlocks(t *testing.T) {
 	reader := bytes.NewReader(src)
 
 	r := &rsync{blockSize: 2, strongHasher: md5.New(), sizeFunc: func() (int64, error) { return int64(len(src)), nil }, requestBlockSize: 2}
-	checksums, err := r.Sign(dst)
-	assert.NoError(t, err)
+	checksums := r.Sign(dst)
 	assert.Len(t, checksums.Checksums, 3)
 
 	patcher, err := r.Delta(reader, checksums)

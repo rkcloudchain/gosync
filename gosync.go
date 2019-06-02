@@ -8,7 +8,7 @@ import (
 
 // GoSync represents a rsync service
 type GoSync interface {
-	Sign(io.Reader) (*syncpb.ChunkChecksums, error)
+	Sign(io.Reader) *syncpb.ChunkChecksums
 
 	Delta(io.ReaderAt, *syncpb.ChunkChecksums) (*syncpb.PatcherBlockSpan, error)
 

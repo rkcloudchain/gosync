@@ -54,8 +54,7 @@ func TestGoRSync(t *testing.T) {
 	r, err := New(cfg)
 	assert.NoError(t, err)
 
-	checksums, err := r.Sign(local)
-	assert.NoError(t, err)
+	checksums := r.Sign(local)
 
 	patcher, err := r.Delta(reader, checksums)
 	assert.NoError(t, err)

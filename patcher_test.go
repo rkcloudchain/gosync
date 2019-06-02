@@ -51,8 +51,7 @@ func TestPatch(t *testing.T) {
 		reference:        NewReadSeekerRequester(reader),
 	}
 
-	checksums, err := r.Sign(dst)
-	assert.NoError(t, err)
+	checksums := r.Sign(dst)
 	assert.Len(t, checksums.Checksums, 6)
 
 	patcher, err := r.Delta(reader, checksums)
