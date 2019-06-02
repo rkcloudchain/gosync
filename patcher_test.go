@@ -61,3 +61,24 @@ func TestPatch(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, src, output.Bytes())
 }
+
+func TestPatchWithLocalNil(t *testing.T) {
+	local := bytes.NewReader(nil)
+	reference := []byte("Raft is a consensus algorithm that is designed to be easy to understand. It's equivalent to Paxos in fault-tolerance and performance.")
+	reader := bytes.NewReader(reference)
+
+	r, err := New(&Config{BlockSize: 4, StrongHasher: sha256.New(), MaxRequestBlockSize: 128, Requester: NewReadSeekerRequester(reader), SizeFunc: func() (int64, error) { return int64(len(reference)), nil }})
+	assert.NoError(t, err)
+
+	checksums := r.Sign(local)
+	assert.Len(t, checksums.Checksums, 0)
+
+	patcher, err := r.Delta(reader, checksums)
+	assert.NoError(t, err)
+	assert.Len(t, patcher.Found, 0)
+
+	output := bytes.NewBuffer(nil)
+	err = r.Patch(local, patcher, output)
+	assert.NoError(t, err)
+	assert.Equal(t, reference, output.Bytes())
+}
